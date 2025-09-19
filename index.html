@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>2Code</title>
+  <meta name="description"
+    content="A clean, responsive e‑book landing page with dynamic product views and Razorpay checkout." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Playfair+Display:wght@600;700&display=swap"
+    rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+  <style>
+    /* ============= ROOT + FONTS ============= */
+    :root {
+      --brand: #6d28d9;
+      --brand-dark: #4c1d95;
+      --brand-light: #8b5cf6;
+      --bg-light: #f9fafb;
+    }
+
+    html,
+    body {
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto,
+        "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      color: #1e293b;
+      background-color: #fff;
+      scroll-behavior: smooth;
+    }
+
+    .heading {
+      font-family: "Playfair Display", serif;
+    }
+
+    /* ============= BACKGROUNDS ============= */
+    .glass {
+      background: linear-gradient(180deg,
+          rgba(255, 255, 255, 0.7),
+          rgba(255, 255, 255, 0.5));
+      backdrop-filter: blur(10px);
+    }
+
+    .gradient {
+      background:
+        /* New Mouse-following lighting effect */
+        radial-gradient(circle 500px at var(--mouse-x, 50%) var(--mouse-y, 50%),
+          rgba(237, 233, 254, 0.3),
+          transparent 80%),
+        /* Original background gradients */
+        radial-gradient(80% 80% at 20% 10%,
+          #ede9fe 0%,
+          rgba(255, 255, 255, 0) 40%),
+        radial-gradient(70% 70% at 90% 10%,
+          #dbeafe 0%,
+          rgba(255, 255, 255, 0) 35%),
+        radial-gradient(120% 120% at 50% 90%,
+          #fce7f3 0%,
+          rgba(255, 255, 255, 0) 45%);
+    }
+
+    /* ============= NAVIGATION ============= */
+    header a {
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
+
+    header a:hover {
+      color: var(--brand);
+    }
+
+    /* ============= CHAT WINDOW ============= */
+    .chat-bubble {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 18px;
+      margin: 6px 0;
+      word-wrap: break-word;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    .chat-bubble.user {
+      background: var(--brand);
+      color: white;
+      margin-left: auto;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-bubble.gemini {
+      background: #e5e7eb;
+      color: #111827;
+      margin-right: auto;
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-bubble.typing {
+      background: #e5e7eb;
+      color: #111827;
+      margin-right: auto;
+      display: flex;
+      gap: 4px;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      background: #9ca3af;
+      border-radius: 50%;
+      animation: blink 1.4s infinite both;
+    }
+
+    .dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+
+    .dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+
+
+    /* ============= MODAL PREVIEW ============= */
+    dialog {
+      border: none;
+      padding: 0;
+    }
+
+    dialog::backdrop {
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(4px);
+    }
+
+    #previewModal,
+    #successModal {
+      animation: scaleUp 0.25s ease-in-out;
+    }
+
+    #previewModal img {
+      transition: transform 0.3s ease;
+    }
+
+    #previewModal img:hover {
+      transform: scale(1.05);
+    }
+
+    /* ============= IMAGE SLIDER ============= */
+    #main-product-image {
+      transition: opacity 0.3s ease-in-out;
+    }
+
+    .thumbnail-img {
+      width: 60px;
+      height: 40px;
+      object-fit: cover;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.3s ease;
+    }
+
+    .thumbnail-img:hover {
+      border-color: var(--brand-light);
+    }
+
+    .thumbnail-img.active {
+      border-color: var(--brand);
+    }
+
+    /* ============= ANIMATIONS ============= */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes blink {
+
+      0%,
+      80%,
+      100% {
+        opacity: 0.3;
+      }
+
+      40% {
+        opacity: 1;
+      }
+    }
+
+    @keyframes scaleUp {
+      from {
+        transform: scale(0.95);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    /* ============= BUTTONS ============= */
+    button,
+    a.button,
+    .product-card {
+      transition: all 0.3s ease;
+    }
+
+    button:hover,
+    a.button:hover,
+    .product-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+    }
+  </style>
+</head>
+
+<body class="gradient min-h-screen text-slate-800">
+
+  <div id="main-view">
+    <header class="max-w-6xl mx-auto px-4 py-6 flex items-center justify-between">
+      <a href="#" class="flex items-center gap-3">
+        <span
+          class="inline-flex h-10 w-20 items-center justify-center rounded-2xl bg-violet-600 text-white font-bold shadow-lg">2Code</span>
+        <span class="heading text-2xl">E-book</span>
+      </a>
+      <nav class="hidden md:flex items-center gap-6 text-sm">
+        <a href="#about" class="hover:text-violet-700">About</a>
+        <a href="#contents" class="hover:text-violet-700">Contents</a>
+        <a href="#pricing" class="hover:text-violet-700">Pricing</a>
+        <a href="#faq" class="hover:text-violet-700">FAQ</a>
+      </nav>
+    </header>
+
+    <section id="about" class="max-w-6xl mx-auto px-4 pt-4 md:pt-10 pb-0 grid md:grid-cols-2 gap-4 items-center">
+      <div class="order-2 md:order-1">
+        <h1 class="heading text-4xl md:text-6xl leading-tight">Build Skills. <span
+            class="text-violet-700">Level‑Up</span>. Own the E‑Book.</h1>
+        <p class="mt-4 text-slate-600 text-lg">A practical e‑book packed with examples, checklists and templates.
+          Perfect for students, makers, and busy professionals.</p>
+        <ul class="mt-5 space-y-2 text-slate-700">
+          <li class="flex gap-3"><span>✅</span> 100+ pages of concise lessons</li>
+          <li class="flex gap-3"><span>✅</span> Lifetime updates</li>
+          <li class="flex gap-3"><span>✅</span> Preview. included code sample HTML,CSS and JS</li>
+        </ul>
+        <div class="mt-6 flex gap-3">
+          <a href="#pricing" class="px-5 py-3 rounded-xl bg-violet-700 text-white shadow hover:bg-violet-800">Choose a
+            Product</a>
+        </div>
+      </div>
+      <div class="order-1 md:order-2">
+        <div class="relative w-full aspect-[12/5] max-w-sm mx-auto">
+          <div
+            class="absolute -inset-4 rounded-3xl bg-gradient-to-tr from-violet-200 via-blue-200 to-pink-200 blur-2xl opacity-70">
+          </div>
+          <div class="relative glass rounded-3xl p-2 shadow-xl border border-white/60">
+            <div class="bg-white rounded-2xl shadow p-6 h-full flex flex-col">
+              <div class="flex-1 bg-gradient-to-br from-violet-100 to-blue-100 rounded-xl grid place-items-center">
+                <span class="heading text-3xl md:text-4xl text-violet-700">Your Portfolio</span>
+              </div>
+              <div class="mt-4 text-center text-slate-600">PDF • ePub • 100+ pages</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="max-w-5xl mx-auto px-4 pt-10 pb-4">
+      <div class="text-center text-slate-500">
+        <p class="text-sm font-semibold tracking-widest uppercase">Join over 10,000+ students</p>
+        <div class="mt-6 flex justify-center items-center gap-x-8 md:gap-x-12 flex-wrap grayscale opacity-60">
+          <p class="text-3xl font-bold font-sans">TechCorp</p>
+          <p class="text-3xl font-bold font-sans">InnovateCo</p>
+          <p class="text-3xl font-bold font-sans">FutureSys</p>
+          <p class="text-3xl font-bold font-sans hidden sm:inline-block">Quantum</p>
+          <p class="text-3xl font-bold font-sans hidden md:inline-block">Solutions</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="contents" class="max-w-6xl mx-auto px-4 py-10">
+      <h2 class="heading text-3xl md:text-4xl">What you'll learn</h2>
+      <div class="mt-6 grid md:grid-cols-3 gap-6">
+        <div class="rounded-2xl bg-white/70 p-6 shadow border border-slate-100">
+          <h3 class="font-semibold">Part I — Foundations</h3>
+          <ul class="mt-3 space-y-2 text-slate-600 text-sm">
+            <li>Mindset & goals</li>
+            <li>Core concepts</li>
+            <li>Quick wins</li>
+          </ul>
+        </div>
+        <div class="rounded-2xl bg-white/70 p-6 shadow border border-slate-100">
+          <h3 class="font-semibold">Part II — Projects</h3>
+          <ul class="mt-3 space-y-2 text-slate-600 text-sm">
+            <li>Step‑by‑step guides</li>
+            <li>Templates</li>
+            <li>Checklists</li>
+          </ul>
+        </div>
+        <div class="rounded-2xl bg-white/70 p-6 shadow border border-slate-100">
+          <h3 class="font-semibold">Part III — Launch</h3>
+          <ul class="mt-3 space-y-2 text-slate-600 text-sm">
+            <li>Portfolio polish</li>
+            <li>Interviews & outreach</li>
+            <li>Next steps</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="pricing" class="max-w-6xl mx-auto px-4 py-10">
+      <div class="text-center">
+        <h2 class="heading text-3xl md:text-4xl">Get the Code</h2>
+        <p class="mt-2 text-slate-600">One‑time purchase • Instant download • Lifetime updates</p>
+      </div>
+
+      <div class="min-h-22 flex flex-col items-center justify-top pt-12 pb-4">
+        <div class="w-full max-w-3xl text-center">
+          <h3 class="text-2xl md:text-3xl font-bold mb-2">Find Your Product</h3>
+          <p class="text-gray-600 dark:text-gray-400 mb-6">Use the search bar to filter courses and books.</p>
+          <form id="searchForm" class="relative w-full">
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"
+                  fill="currentColor">
+                  <path fill-rule="evenodd"
+                    d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                    clip-rule="evenodd" />
+                </svg>
+              </div>
+              <input id="searchInput" type="search" name="query"
+                class="block w-full pl-12 pr-4 text-gray-800 bg-white/80 border border-gray-300 rounded-full py-4 focus:ring-2 focus:ring-violet-500 focus:border-violet-500 transition duration-300 ease-in-out"
+                placeholder="Search for 'video', 'book', etc...">
+            </div>
+          </form>
+          <div id="results" class="mt-6 text-lg text-gray-700 dark:text-gray-300">
+          </div>
+        </div>
+      </div>
+
+      <div id="product-list" class="mt-10 grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+        <div class="product-card rounded-2xl bg-white/70 p-6 shadow border border-slate-100 cursor-pointer flex flex-col"
+          data-name="E-Book" data-price="19" data-mrp="99"
+          data-features="100+ pages PDF, ePub formats, Lifetime updates, Bonus worksheet pack"
+          data-images="https://i.ibb.co/zTFrV550/Screenshot-2025-09-19-144513.png, https://i.ibb.co/8gS48g6G/Screenshot-2025-09-19-144529.png, https://i.ibb.co/mrDbsm19/Screenshot-2025-09-19-144545.png"
+          data-download-link="https://drive.google.com/drive/folders/1-EBOOK-SAMPLE-LINK"
+          data-preview-images="https://image2url.com/images/1756979519928-30564f9d-9f4f-4dfa-beaa-4f0d7a21ea9b.png, https://image2url.com/images/1756979601712-8073ac3a-52ea-481f-8f5d-eab868572324.png, https://image2url.com/images/1756979636166-0be859d9-035a-4d9e-9eac-630271ed84e1.png, https://image2url.com/images/1756979664203-d4cc88b4-8a86-4b1f-87b2-915ae29444c6.png"
+          style="background-image: linear-gradient(rgba(255, 255, 255, 0.623), rgba(255, 255, 255, 0.85)), url('https://i.ibb.co/zTFrV550/Screenshot-2025-09-19-144513.png'); background-size: cover; background-position: center;">
+          <div class="flex-grow">
+            <h4 class="font-bold text-lg">krg_1</h4>
+            <p class="text-sm text-slate-600 mt-1">Portfolio.</p>
+          </div>
+          <div class="mt-4">
+            <div class="flex items-end gap-3">
+              <div class="text-3xl font-bold">₹19</div>
+              <div class="text-sm text-slate-500 line-through">₹89</div>
+            </div>
+            <div class="mt-3 flex gap-2 text-xs text-slate-600">
+              <span>PDF</span> · <span>ePub</span> · <span>20+ pages(code)</span>
+            </div>
+          </div>
+        </div>
+          <!-- ========================
+        <div class="product-card rounded-2xl bg-white/70 p-6 border-2 border-violet-700 shadow-lg cursor-pointer relative flex flex-col"
+          data-name="Video Course" data-price="49" data-mrp="499"
+          data-features="5+ hours HD video, Project files included, Lifetime access & updates, Community access"
+          data-images="https://placehold.co/800x450/c4b5fd/4c1d95?text=Course+Intro,https://placehold.co/800x450/c4b5fd/4c1d95?text=Lesson+1:+Setup,https://placehold.co/800x450/c4b5fd/4c1d95?text=Lesson+2:+Project,https://placehold.co/800x450/c4b5fd/4c1d95?text=Project+Files+View"
+          data-download-link="https://drive.google.com/drive/folders/2-VIDEO-COURSE-SAMPLE-LINK"
+          data-preview-images="https://placehold.co/800x450/c4b5fd/4c1d95?text=Course+Intro,https://placehold.co/800x450/c4b5fd/4c1d95?text=Lesson+1:+Setup,https://placehold.co/800x450/c4b5fd/4c1d95?text=Lesson+2:+Project"
+          style="background-image: linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.85)), url('https://images.unsplash.com/photo-1521336829474-513a225e1a38?auto=format&fit=crop&w=800&q=60'); background-size: cover; background-position: center;">
+          <span
+            class="absolute top-0 right-4 -mt-3 text-xs px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 font-semibold">Popular</span>
+          <div class="flex-grow">
+            <h4 class="font-bold text-lg">Video Course</h4>
+            <p class="text-sm text-slate-600 mt-1">Practical, hands-on lessons.</p>
+          </div>
+          <div class="mt-4">
+            <div class="flex items-end gap-3">
+              <div class="text-3xl font-bold">₹49</div>
+              <div class="text-sm text-slate-500 line-through">₹499</div>
+            </div>
+            <div class="mt-3 flex gap-2 text-xs text-slate-600">
+              <span>5+ hours video</span> · <span>Project files</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="product-card rounded-2xl bg-white/70 p-6 shadow border border-slate-100 cursor-pointer flex flex-col"
+          data-name="Complete Bundle" data-price="59" data-mrp="598"
+          data-features="Includes E-Book, Includes Video Course, All future updates, Priority support"
+          data-images="https://placehold.co/800x450/dbeafe/1e40af?text=Bundle+Offer,https://placehold.co/800x450/dbeafe/1e40af?text=E-Book+Cover,https://placehold.co/800x450/dbeafe/1e40af?text=Video+Lesson+Example"
+          data-download-link="https://drive.google.com/drive/folders/3-BUNDLE-SAMPLE-LINK"
+          data-preview-images="https://placehold.co/800x450/dbeafe/1e40af?text=Bundle+Offer,https://i.ibb.co/zTFrV550/Screenshot-2025-09-19-144513.png,https://placehold.co/800x450/c4b5fd/4c1d95?text=Course+Intro"
+          style="background-image: linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.85)), url('https://images.unsplash.com/photo-1557682250-33bd709cbe85?auto=format&fit=crop&w=800&q=60'); background-size: cover; background-position: center;">
+          <div class="flex-grow">
+            <h4 class="font-bold text-lg">Complete Bundle</h4>
+            <p class="text-sm text-slate-600 mt-1">Get everything and save big.</p>
+          </div>
+          <div class="mt-4">
+            <div class="flex items-end gap-3">
+              <div class="text-3xl font-bold">₹59</div>
+              <div class="text-sm text-slate-500 line-through">₹598</div>
+              <span
+                class="ml-auto text-xs px-2 py-1 rounded-full bg-pink-100 text-pink-700 font-semibold">Best Value</span>
+            </div>
+            <div class="mt-3 flex gap-2 text-xs text-slate-600">
+              <span>E-Book</span> + <span>Video Course</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      ========================= -->
+    </section>
+
+    <section id="faq" class="max-w-6xl mx-auto px-4 py-10">
+      <h2 class="heading text-3xl md:text-4xl">FAQ</h2>
+      <div class="mt-6 grid md:grid-cols-2 gap-6 text-slate-700">
+        <div class="rounded-2xl bg-white/70 p-6 border border-slate-100">
+          <h3 class="font-semibold">Which formats are included?</h3>
+          <p class="mt-2 text-sm">PDF and ePub for the E-Book . Read on any device.</p>
+        </div>
+        <div class="rounded-2xl bg-white/70 p-6 border border-slate-100">
+          <h3 class="font-semibold">Is there a refund policy?</h3>
+          <p class="mt-2 text-sm">Yes. 7‑day, no‑questions‑asked refund. Just reply to your receipt.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="max-w-6xl mx-auto px-4 py-10 text-sm text-slate-500">
+      <div class="flex items-center justify-center">
+        <p>© <span id="year"></span> Your Brand. All rights reserved.</p>
+      </div>
+    </footer>
+  </div>
+
+  <div id="checkout-view" class="hidden">
+    <div class="max-w-6xl mx-auto p-4 md:p-8">
+      <button id="backBtn" class="mb-6 text-sm text-violet-700 font-semibold hover:underline">← Back to
+        Products</button>
+      <div class="grid md:grid-cols-2 gap-10 items-start">
+        <div class="space-y-6">
+          <div id="product-gallery" class="bg-white/70 rounded-2xl p-4 shadow border border-slate-100">
+            <img id="main-product-image" src="" alt="Selected Product Image"
+              class="w-full aspect-video object-cover rounded-lg mb-3">
+            <div id="thumbnail-container" class="flex gap-2 justify-center">
+            </div>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-white/70 shadow border border-slate-100 relative overflow-hidden">
+            <div class="relative z-10">
+              <h1 id="productName" class="heading text-3xl md:text-4xl">Product Name</h1>
+              <div class="mt-3 flex items-end gap-3">
+                <div id="productPrice" class="text-5xl font-bold">₹0</div>
+                <div id="productMrp" class="text-lg text-slate-500 line-through">₹0</div>
+              </div>
+              <div id="productFeatures" class="mt-4 text-slate-600 space-y-2"></div>
+            </div>
+          </div>
+          <div class="mt-6 flex gap-3">
+            <button id="previewBtnCheckout"
+              class="w-full px-5 py-3 rounded-xl bg-white/70 shadow hover:shadow-lg border border-slate-200">Preview</button>
+          </div>
+         
+        </div>
+        <div class="sticky top-10">
+          <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 class="font-semibold text-lg">Checkout</h3>
+            <div class="mt-4 grid gap-3">
+              <label class="text-sm">Your Name
+                <input id="buyerName" type="text"
+                  class="mt-1 w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-300"
+                  placeholder="e.g., Ada Lovelace" />
+              </label>
+              <label class="text-sm">Email
+                <input id="buyerEmail" type="email"
+                  class="mt-1 w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-300"
+                  placeholder="you@example.com" />
+              </label>
+              <label class="text-sm">Quantity
+                <input id="qty" type="number"
+                  class="mt-1 w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-300"
+                  value="1" min="1" />
+              </label>
+            </div>
+            <details class="mt-4">
+              <summary class="cursor-pointer text-sm text-slate-700">Coupon code</summary>
+              <div class="mt-3 flex gap-2">
+                <input id="coupon" type="text" placeholder="e.g., LAUNCH20"
+                  class="w-48 px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-violet-300" />
+                <button id="applyCoupon" class="px-4 py-2 rounded-xl bg-slate-900 text-white">Apply</button>
+              </div>
+            </details>
+            <div class="mt-4 flex items-center justify-between text-sm">
+              <span>Subtotal</span>
+              <span>₹<span id="subtotal">0</span></span>
+            </div>
+            <div class="mt-1 flex items-center justify-between text-sm">
+              <span>Discount</span>
+              <span>-₹<span id="discount">0</span></span>
+            </div>
+            <div class="mt-1 flex items-center justify-between text-base font-semibold">
+              <span>Total</span>
+              <span>₹<span id="total">0</span></span>
+            </div>
+            <button id="payBtn"
+              class="mt-5 w-full px-4 py-3 rounded-xl bg-violet-700 text-white font-semibold hover:bg-violet-800 shadow">Pay
+              with Razorpay</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <dialog id="previewModal" class="rounded-2xl w-11/12 md:w-[720px] p-0 border-0">
+    <div class="p-6 bg-white rounded-2xl">
+      <div class="flex items-center justify-between">
+        <h3 id="preview-title" class="font-semibold">Preview</h3>
+        <button id="closePreview" class="text-slate-500">✕</button>
+      </div>
+      <div id="preview-image-container" class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+        </div>
+    </div>
+  </dialog>
+
+  <dialog id="successModal" class="rounded-2xl w-11/12 max-w-md p-0 border-0">
+    <div class="p-8 text-center bg-white rounded-2xl">
+      <h3 class="heading text-2xl text-violet-700">🎉 Payment Successful! 🎉</h3>
+      <p class="mt-3 text-slate-600">Your order is complete. You can download your product now.</p>
+      <a id="download-link" href="#" download
+        class="mt-6 inline-block w-full text-center text-lg px-5 py-3 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 shadow">Download
+        Now</a>
+      <button id="closeSuccessModal" class="mt-3 text-sm text-slate-500 hover:text-slate-700">Close</button>
+    </div>
+  </dialog>
+
+  <div id="chatbox" class="fixed bottom-20 right-6 w-80 bg-white rounded-2xl shadow-lg overflow-hidden hidden z-20">
+    <div class="bg-violet-700 text-white px-4 py-2 font-semibold">Chat Support</div>
+    <div id="chat-window" class="h-64 overflow-y-auto p-3 bg-gray-50"></div>
+    <div class="flex border-t">
+      <input id="chat-input" type="text" placeholder="Ask me anything..."
+        class="flex-1 px-3 py-2 text-sm focus:outline-none">
+      <button id="send-btn" class="px-4 bg-violet-700 text-white">Send</button>
+    </div>
+  </div>
+
+  <button id="chat-toggle-btn"
+    class="fixed bottom-6 right-6 bg-violet-700 text-white p-4 rounded-full shadow-lg hover:bg-violet-800 z-20">
+    💬
+  </button>
+
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // ============= GLOBAL STATE =============
+      let selectedProduct = {
+        name: '', price: 0, mrp: 0, features: '', images: '',
+        downloadLink: '', previewImages: '' // <-- NEW: Add properties for dynamic content
+      };
+      let discountRate = 0;
+      let qty = 1;
+
+      // ============= VIEW ELEMENTS =============
+      const mainView = document.getElementById('main-view');
+      const checkoutView = document.getElementById('checkout-view');
+      const backBtn = document.getElementById('backBtn');
+      const productCards = document.querySelectorAll(".product-card");
+
+      // ============= CHECKOUT FORM ELEMENTS =============
+      const mainProductImage = checkoutView.querySelector("#main-product-image");
+      const thumbnailContainer = checkoutView.querySelector("#thumbnail-container");
+      const checkoutProductName = checkoutView.querySelector("#productName");
+      const checkoutProductPrice = checkoutView.querySelector("#productPrice");
+      const checkoutProductMrp = checkoutView.querySelector("#productMrp");
+      const checkoutProductFeatures = checkoutView.querySelector("#productFeatures");
+      const subtotalEl = document.getElementById("subtotal");
+      const discountEl = document.getElementById("discount");
+      const totalEl = document.getElementById("total");
+      const qtyInput = document.getElementById("qty");
+      const couponInput = document.getElementById("coupon");
+      const applyCouponBtn = document.getElementById("applyCoupon");
+      const payBtn = document.getElementById("payBtn");
+
+      // ============= MODAL ELEMENTS =============
+      const previewModal = document.getElementById("previewModal");
+      const closePreview = document.getElementById("closePreview");
+      const previewBtnCheckout = document.getElementById("previewBtnCheckout");
+      const successModal = document.getElementById("successModal");
+      const closeSuccessModal = document.getElementById("closeSuccessModal");
+
+      // ============= CHAT ELEMENTS =============
+      const chatbox = document.getElementById("chatbox");
+      const chatToggleBtn = document.getElementById("chat-toggle-btn");
+      const chatWindow = document.getElementById("chat-window");
+      const chatInput = document.getElementById("chat-input");
+      const sendBtn = document.getElementById("send-btn");
+
+      // ============= SEARCH ELEMENTS =============
+      const searchForm = document.getElementById('searchForm');
+      const searchInput = document.getElementById('searchInput');
+      const resultsDiv = document.getElementById('results');
+
+      // ============= FUNCTIONS =============
+
+      function triggerConfetti() {
+        const confettiCount = 150;
+        const colors = ['#6d28d9', '#a78bfa', '#f472b6', '#3b82f6', '#14b8a6'];
+
+        for (let i = 0; i < confettiCount; i++) {
+          const particle = document.createElement('div');
+          particle.style.position = 'fixed';
+          particle.style.top = `${Math.random() * -20}vh`;
+          particle.style.left = `${Math.random() * 100}vw`;
+          particle.style.width = `${Math.random() * 10 + 5}px`;
+          particle.style.height = particle.style.width;
+          particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+          particle.style.borderRadius = `${Math.random() > 0.5 ? '50%' : '0'}`;
+          particle.style.opacity = '0.9';
+          particle.style.zIndex = '9999';
+          particle.style.pointerEvents = 'none';
+
+          const animationDuration = Math.random() * 3 + 2; // 2s to 5s
+
+          particle.animate([
+            { transform: `translateY(0) rotate(0deg)`, opacity: 1 },
+            { transform: `translateY(110vh) rotate(${Math.random() * 720}deg)`, opacity: 0 }
+          ], {
+            duration: animationDuration * 1000,
+            easing: 'ease-out',
+            fill: 'forwards'
+          });
+
+          document.body.appendChild(particle);
+
+          setTimeout(() => {
+            particle.remove();
+          }, animationDuration * 1000);
+        }
+      }
+
+      function updateTotals() {
+        qty = parseInt(qtyInput.value) || 1;
+        const subtotal = selectedProduct.price * qty;
+        const discount = Math.round(subtotal * discountRate);
+        const total = subtotal - discount;
+
+        subtotalEl.textContent = subtotal;
+        discountEl.textContent = discount;
+        totalEl.textContent = total;
+        return total;
+      }
+
+      function showCheckoutView(productData) {
+        selectedProduct = productData;
+
+        // Populate product details
+        checkoutProductName.textContent = selectedProduct.name;
+        checkoutProductPrice.textContent = `₹${selectedProduct.price}`;
+        checkoutProductMrp.textContent = `₹${selectedProduct.mrp}`;
+        const features = selectedProduct.features.split(',').map(f => f.trim());
+        checkoutProductFeatures.innerHTML = features.map(f => `<p class="flex gap-2 items-center"><span class="text-emerald-500">✓</span> ${f}</p>`).join('');
+
+        // Populate image gallery
+        const images = selectedProduct.images.split(',').map(src => src.trim());
+        mainProductImage.src = images[0];
+        thumbnailContainer.innerHTML = '';
+        images.forEach((imgSrc, index) => {
+          const thumb = document.createElement('img');
+          thumb.src = imgSrc;
+          thumb.alt = `Product thumbnail ${index + 1}`;
+          thumb.className = 'thumbnail-img';
+          if (index === 0) {
+            thumb.classList.add('active');
+          }
+          thumb.addEventListener('click', () => {
+            mainProductImage.style.opacity = 0;
+            setTimeout(() => {
+              mainProductImage.src = imgSrc;
+              mainProductImage.style.opacity = 1;
+            }, 150);
+
+            // Update active thumbnail
+            thumbnailContainer.querySelectorAll('.thumbnail-img').forEach(t => t.classList.remove('active'));
+            thumb.classList.add('active');
+          });
+          thumbnailContainer.appendChild(thumb);
+        });
+
+
+        // Reset form and show view
+        qtyInput.value = 1;
+        couponInput.value = '';
+        discountRate = 0;
+        updateTotals();
+
+        mainView.classList.add('hidden');
+        checkoutView.classList.remove('hidden');
+        window.scrollTo(0, 0);
+      }
+
+      function showMainView() {
+        checkoutView.classList.add('hidden');
+        mainView.classList.remove('hidden');
+        window.scrollTo(0, 0);
+      }
+
+      // ============= EVENT LISTENERS =============
+      document.addEventListener('mousemove', (e) => {
+        document.body.style.setProperty('--mouse-x', `${e.clientX}px`);
+        document.body.style.setProperty('--mouse-y', `${e.clientY}px`);
+      });
+
+      productCards.forEach(card => {
+        card.addEventListener("click", () => {
+          const productData = {
+            name: card.dataset.name,
+            price: parseInt(card.dataset.price),
+            mrp: parseInt(card.dataset.mrp),
+            features: card.dataset.features,
+            images: card.dataset.images,
+            // <-- NEW: Read the product-specific data
+            downloadLink: card.dataset.downloadLink,
+            previewImages: card.dataset.previewImages
+          };
+          showCheckoutView(productData);
+        });
+      });
+
+      backBtn.addEventListener('click', showMainView);
+      qtyInput.addEventListener("input", updateTotals);
+
+      applyCouponBtn.addEventListener("click", () => {
+        const code = couponInput.value.trim().toUpperCase();
+        if (code === "krg20") {
+          discountRate = 0.2;
+          alert("Coupon applied! 20% off.");
+        } else {
+          discountRate = 0;
+          alert("Invalid coupon.");
+        }
+        updateTotals();
+      });
+
+      payBtn.addEventListener("click", () => {
+        const total = updateTotals();
+        const buyerName = document.getElementById("buyerName").value.trim();
+        const buyerEmail = document.getElementById("buyerEmail").value.trim();
+
+        if (!buyerName || !buyerEmail) {
+          alert("Please enter your name and email.");
+          return;
+        }
+
+        const options = {
+          key: "rzp_live_RF5FDzSr4AWHsL",
+          amount: total * 100,
+          currency: "INR",
+          name: selectedProduct.name,
+          description: "Product Purchase",
+          handler: function (response) {
+            console.log(response);
+
+            // <-- NEW: Set the download link before showing the success modal
+            const downloadBtn = document.getElementById('download-link');
+            downloadBtn.href = selectedProduct.downloadLink;
+
+            successModal.showModal();
+            triggerConfetti();
+          },
+          prefill: {
+            name: buyerName,
+            email: buyerEmail,
+          },
+          theme: {
+            color: "#6d28d9",
+          },
+        };
+
+        const rzp = new Razorpay(options);
+        rzp.open();
+      });
+
+      // <-- NEW: DYNAMIC PREVIEW LOGIC
+      previewBtnCheckout.addEventListener("click", () => {
+        const previewTitle = document.getElementById('preview-title');
+        const previewContainer = document.getElementById('preview-image-container');
+
+        // Set the dynamic title
+        previewTitle.textContent = `Preview – ${selectedProduct.name}`;
+        
+        // Clear any old images
+        previewContainer.innerHTML = '';
+
+        // Get preview images from the selected product and create elements
+        const images = selectedProduct.previewImages.split(',').map(src => src.trim());
+        images.forEach(src => {
+            const img = document.createElement('img');
+            img.src = src;
+            img.alt = `Preview for ${selectedProduct.name}`;
+            img.className = 'rounded border w-full h-auto object-cover';
+            previewContainer.appendChild(img);
+        });
+        
+        previewModal.showModal()
+      });
+      
+      closePreview.addEventListener("click", () => previewModal.close());
+      closeSuccessModal.addEventListener("click", () => successModal.close());
+
+      // === Chat Feature ===
+      function toggleChat() {
+        chatbox.classList.toggle("hidden");
+      }
+      chatToggleBtn.addEventListener("click", toggleChat);
+
+      function appendMessage(text, sender = "user") {
+        const bubble = document.createElement("div");
+        bubble.className = `chat-bubble ${sender}`;
+        bubble.textContent = text;
+        chatWindow.appendChild(bubble);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+      }
+
+      function showTyping() {
+        const bubble = document.createElement("div");
+        bubble.className = "chat-bubble typing";
+        bubble.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+        chatWindow.appendChild(bubble);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+        return bubble;
+      }
+
+      function botReply(userMsg) {
+        let reply = "I'm not sure, but the e-book includes detailed notes and resources.";
+        userMsg = userMsg.toLowerCase();
+        if (userMsg.includes("price")) {
+          reply = "The E-Book is ₹19. The Video Course is ₹49.";
+        } else if (userMsg.includes("course")) {
+          reply = "The Video Course includes 5+ hours of HD lessons with lifetime access.";
+        } else if (userMsg.includes("refund")) {
+          reply = "Yes! We offer a 7-day refund policy on all purchases.";
+        } else if (userMsg.includes("ebook") || userMsg.includes("e-book")) {
+          reply = "The E-Book is delivered instantly after payment in PDF format.";
+        } else if (userMsg.includes("hello") || userMsg.includes("hi")) {
+          reply = "Hello 👋 How can I help you today?";
+        }
+
+        const typingBubble = showTyping();
+        setTimeout(() => {
+          typingBubble.remove();
+          appendMessage(reply, "gemini");
+        }, 1200);
+      }
+
+      sendBtn.addEventListener("click", () => {
+        const msg = chatInput.value.trim();
+        if (!msg) return;
+        appendMessage(msg, "user");
+        chatInput.value = "";
+        botReply(msg);
+      });
+
+      chatInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") sendBtn.click();
+      });
+
+      // ============= PRODUCT SEARCH LOGIC =============
+      function escapeHTML(str) {
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+      }
+
+      function filterProducts() {
+        const query = searchInput.value.toLowerCase().trim();
+        let visibleCount = 0;
+
+        productCards.forEach(card => {
+          const productName = card.dataset.name.toLowerCase();
+          const isMatch = productName.includes(query);
+
+          card.classList.toggle('hidden', !isMatch);
+
+          if (isMatch) {
+            visibleCount++;
+          }
+        });
+
+        // Update the results message
+        if (visibleCount === 0 && query) {
+          resultsDiv.innerHTML = `<p class="p-4 bg-yellow-100 text-yellow-800 rounded-lg">No products found for: <span class="font-semibold">${escapeHTML(query)}</span></p>`;
+        } else {
+          resultsDiv.innerHTML = ''; // Clear message if there are results or the input is empty
+        }
+      }
+
+      // Live search on input
+      searchInput.addEventListener('input', filterProducts);
+
+      // Prevent form submission from reloading the page
+      searchForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        filterProducts();
+      });
+
+      // ============= INITIALIZATION =============
+      document.getElementById("year").textContent = new Date().getFullYear();
+    });
+  </script>
+
+</body>
+
+</html>
